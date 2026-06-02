@@ -130,7 +130,7 @@ if st.session_state.stage == 'upload':
                 <div class='header-subtitle'>YOLO + EfficientNetV2 기반 정밀 분석</div>
             </div>
         </div>
-    """, unsafe_html=True)
+    """, unsafe_allow_html=True)
     
     st.write("")
     uploaded_file = st.file_uploader("분석할 차량 사진을 업로드해주세요", type=["jpg", "jpeg", "png"])
@@ -152,19 +152,19 @@ elif st.session_state.stage == 'analyzing':
                 <div class='header-subtitle'>YOLO + EfficientNetV2 기반 정밀 분석</div>
             </div>
         </div>
-    """, unsafe_html=True)
+    """, unsafe_allow_html=True)
     
     with st.spinner(""):
-        st.markdown("<h3 class='center-text' style='color: white;'>AI가 이미지를 분석하고 있습니다...</h3>", unsafe_html=True)
+        st.markdown("<h3 class='center-text' style='color: white;'>AI가 이미지를 분석하고 있습니다...</h3>", unsafe_allow_html=True)
         
         yolo_status = st.empty()
         resnet_status = st.empty()
         
-        yolo_status.markdown("<p class='center-text' style='color: #8A2BE2;'>🔄 YOLO: 차량 영역 추출 중...</p>", unsafe_html=True)
+        yolo_status.markdown("<p class='center-text' style='color: #8A2BE2;'>🔄 YOLO: 차량 영역 추출 중...</p>", unsafe_allow_html=True)
         time.sleep(1.2)
-        yolo_status.markdown("<p class='center-text' style='color: #00CB76;'>✅ YOLO: 차량 영역 추출 완료</p>", unsafe_html=True)
+        yolo_status.markdown("<p class='center-text' style='color: #00CB76;'>✅ YOLO: 차량 영역 추출 완료</p>", unsafe_allow_html=True)
         
-        resnet_status.markdown("<p class='center-text' style='color: #8A2BE2;'>🔄 ResNet(EfficientNet): 특징 데이터 분류 중...</p>", unsafe_html=True)
+        resnet_status.markdown("<p class='center-text' style='color: #8A2BE2;'>🔄 ResNet(EfficientNet): 특징 데이터 분류 중...</p>", unsafe_allow_html=True)
         
         # 실제 AI 인공지능 추론 진행
         img = Image.open(st.session_state.uploaded_file).convert('RGB')
@@ -183,7 +183,7 @@ elif st.session_state.stage == 'analyzing':
             st.session_state.result_name = "오류: 모델 없음"
             st.session_state.result_prob = "0.0%"
             
-        resnet_status.markdown("<p class='center-text' style='color: #00CB76;'>✅ ResNet: 특징 데이터 분류 완료</p>", unsafe_html=True)
+        resnet_status.markdown("<p class='center-text' style='color: #00CB76;'>✅ ResNet: 특징 데이터 분류 완료</p>", unsafe_allow_html=True)
         time.sleep(0.5)
         
         st.session_state.stage = 'result'
@@ -198,7 +198,7 @@ elif st.session_state.stage == 'result':
                 <div class='header-subtitle'>YOLO + EfficientNetV2 기반 정밀 분석</div>
             </div>
         </div>
-    """, unsafe_html=True)
+    """, unsafe_allow_html=True)
     
     st.write("")
     col1, col2 = st.columns([1, 2])
@@ -207,10 +207,10 @@ elif st.session_state.stage == 'result':
     with col2:
         st.caption("분석 결과")
         st.subheader(st.session_state.result_name)
-        st.markdown(f"<span style='background-color:#E8E7FF; color:#6236FF; padding:3px 8px; border-radius:5px; font-size:12px; font-weight:bold;'>예측 확률: {st.session_state.result_prob}</span>", unsafe_html=True)
+        st.markdown(f"<span style='background-color:#E8E7FF; color:#6236FF; padding:3px 8px; border-radius:5px; font-size:12px; font-weight:bold;'>예측 확률: {st.session_state.result_prob}</span>", unsafe_allow_html=True)
 
-    st.markdown("<hr style='border: 0.5px solid #333;'/>", unsafe_html=True)
-    st.markdown("<h5 class='center-text' style='color: white;'>예측이 맞았나요?</h5>", unsafe_html=True)
+    st.markdown("<hr style='border: 0.5px solid #333;'/>", unsafe_allow_html=True)
+    st.markdown("<h5 class='center-text' style='color: white;'>예측이 맞았나요?</h5>", unsafe_allow_html=True)
     
     f_col1, f_col2 = st.columns(2)
     with f_col1:
