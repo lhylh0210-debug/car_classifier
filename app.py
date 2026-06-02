@@ -8,15 +8,12 @@ from torchvision.models import efficientnet_v2_s
 import os
 import urllib.request
 import base64
-from io import BytesIO
 
 # ==========================================
-# 🎨 1. Streamlit 페이지 설정 및 커스텀 CSS (최상단에 위치해야 함)
+# 🎨 1. Streamlit 페이지 설정 및 커스텀 CSS
 # ==========================================
-# 화면을 넓게 쓰는 wide 레이아웃으로 변경
 st.set_page_config(page_title="AI 자동차 차종 분류기", layout="wide", initial_sidebar_state="collapsed")
 
-# 레퍼런스 이미지 기반 다크/모던 CSS 주입
 st.markdown("""
     <style>
     /* 전체 배경을 레퍼런스 이미지의 다크 네이비로 설정 */
@@ -29,7 +26,7 @@ st.markdown("""
         color: #F8F9FA;
     }
     
-    /* 좌측 메인 타이틀 (Try out our free AI Video Tool 느낌) */
+    /* 좌측 메인 타이틀 */
     .main-title {
         font-size: 3.5rem;
         font-weight: 800;
@@ -40,7 +37,7 @@ st.markdown("""
         -webkit-text-fill-color: transparent;
     }
     
-    /* 스텝 텍스트 (1 Select an AI avatar 느낌) */
+    /* 스텝 텍스트 */
     .step-text {
         font-size: 1.2rem;
         font-weight: 600;
@@ -53,7 +50,7 @@ st.markdown("""
         margin-right: 10px;
     }
     
-    /* 메인 파란색 액션 버튼 (Create free AI video 느낌) */
+    /* 메인 파란색 액션 버튼 */
     div.stButton > button:first-child {
         background-color: #4F46E5;
         color: white !important;
@@ -70,25 +67,42 @@ st.markdown("""
         box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
     }
     
-    /* 파일 업로더 점선 테두리 스타일링 */
+    /* 🚨 수정됨: 파일 업로더 영역 시인성 강화 */
     [data-testid="stFileUploadDropzone"] {
-        background-color: rgba(255,255,255,0.05);
-        border: 1px dashed rgba(255,255,255,0.2);
+        background-color: rgba(255,255,255,0.05) !important;
+        border: 2px dashed rgba(129, 140, 248, 0.5) !important;
         border-radius: 12px;
+        padding: 20px !important;
+    }
+    /* 업로더 안의 텍스트 색상 */
+    [data-testid="stFileUploadDropzone"] * {
+        color: #E2E8F0 !important;
+    }
+    /* 업로더 'Browse files' 버튼 디자인 */
+    [data-testid="stFileUploadDropzone"] button {
+        background-color: rgba(129, 140, 248, 0.2) !important;
+        color: #A5B4FC !important;
+        border: 1px solid #818CF8 !important;
+        border-radius: 6px !important;
+        font-weight: bold !important;
+    }
+    [data-testid="stFileUploadDropzone"] button:hover {
+        background-color: rgba(129, 140, 248, 0.4) !important;
+        color: #FFFFFF !important;
     }
     
-    /* 우측 이미지 프레임 카드 */
+    /* 우측 이미지 프레임 카드 (중앙 정렬 완벽 보장) */
     .right-image-card {
         background-color: rgba(255,255,255,0.03);
         border-radius: 16px;
         padding: 20px;
         border: 1px solid rgba(255,255,255,0.1);
-        height: 100%;
+        height: calc(100vh - 150px); /* 화면 높이에 맞게 꽉 채움 */
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        min-height: 60vh;
+        overflow: hidden;
     }
     
     /* 결과 강조 뱃지 */
@@ -186,7 +200,7 @@ if 'stage' not in st.session_state: st.session_state.stage = 'upload'
 if 'uploaded_file' not in st.session_state: st.session_state.uploaded_file = None
 if 'feedback_submitted' not in st.session_state: st.session_state.feedback_submitted = False
 
-# 여백을 주어 레퍼런스 이미지처럼 화면 구성을 맞춤 (좌측 1 : 공백 0.1 : 우측 1.3)
+# 여백을 주어 레퍼런스 이미지처럼 화면 구성을 맞춤
 col_left, col_space, col_right = st.columns([1, 0.1, 1.3])
 
 # ==========================================
@@ -195,7 +209,8 @@ col_left, col_space, col_right = st.columns([1, 0.1, 1.3])
 
 # ----------------- [좌측 컨트롤 패널 영역] -----------------
 with col_left:
-    st.write("") # 상단 여백
+    st.write("") 
+    st.write("") 
     st.markdown("<div class='main-title'>Experience<br>AI Car Classifier</div>", unsafe_allow_html=True)
     st.markdown("<p style='font-size: 1.1rem; opacity: 0.8; margin-bottom: 2rem;'>Upload an image to precisely identify the vehicle make and model using EfficientNetV2.</p>", unsafe_allow_html=True)
     
@@ -277,18 +292,23 @@ with col_left:
 
 # ----------------- [우측 프리뷰/이미지 영역] -----------------
 with col_right:
-    st.markdown("<div class='right-image-card'>", unsafe_allow_html=True)
-    
+    # 🚨 수정됨: HTML 안에서 Base64로 이미지를 직접 그려 중앙 정렬과 비율을 완벽하게 맞춤
     if st.session_state.uploaded_file is not None:
-        # 이미지가 있을 경우 크고 시원하게 출력
-        st.image(st.session_state.uploaded_file, use_container_width=True)
-    else:
-        # 이미지가 없을 경우 플레이스홀더 텍스트 표시
-        st.markdown("""
-            <div style='text-align: center; opacity: 0.3; margin: auto;'>
-                <h1 style='font-size: 4rem;'>🚗</h1>
-                <p>Upload a vehicle image to see the preview</p>
+        bytes_data = st.session_state.uploaded_file.getvalue()
+        b64_encoded = base64.b64encode(bytes_data).decode()
+        
+        st.markdown(f"""
+            <div class='right-image-card'>
+                <img src="data:image/jpeg;base64,{b64_encoded}" 
+                     style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"/>
             </div>
         """, unsafe_allow_html=True)
-        
-    st.markdown("</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("""
+            <div class='right-image-card'>
+                <div style='text-align: center; opacity: 0.3; margin: auto;'>
+                    <h1 style='font-size: 4rem; margin-bottom: 10px;'>🚗</h1>
+                    <p style='font-size: 1.1rem;'>Upload a vehicle image<br>to see the preview</p>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
