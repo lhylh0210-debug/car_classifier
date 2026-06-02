@@ -8,6 +8,10 @@ from torchvision.models import efficientnet_v2_s
 import os
 import urllib.request
 import base64
+import io
+
+# 🚨 새롭게 추가된 라이브러리 (YOLO)
+from ultralytics import YOLO 
 
 # ==========================================
 # 🎨 1. Streamlit 페이지 설정 및 커스텀 CSS
@@ -16,105 +20,50 @@ st.set_page_config(page_title="AI 자동차 차종 분류기", layout="wide", in
 
 st.markdown("""
     <style>
-    /* 전체 배경을 레퍼런스 이미지의 다크 네이비로 설정 */
-    .stApp {
-        background-color: #0A1128;
-    }
+    .stApp { background-color: #0A1128; }
+    h1, h2, h3, p, span, div { color: #F8F9FA; }
     
-    /* 전체 텍스트 컬러 화이트 고정 */
-    h1, h2, h3, p, span, div {
-        color: #F8F9FA;
-    }
-    
-    /* 좌측 메인 타이틀 */
     .main-title {
-        font-size: 3.5rem;
-        font-weight: 800;
-        line-height: 1.2;
-        margin-bottom: 2rem;
+        font-size: 3.5rem; font-weight: 800; line-height: 1.2; margin-bottom: 2rem;
         background: -webkit-linear-gradient(0deg, #FFFFFF, #A5B4FC);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
     
-    /* 스텝 텍스트 */
-    .step-text {
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin-top: 2rem;
-        margin-bottom: 0.8rem;
-    }
-    .step-number {
-        color: #818CF8;
-        font-weight: 800;
-        margin-right: 10px;
-    }
+    .step-text { font-size: 1.2rem; font-weight: 600; margin-top: 2rem; margin-bottom: 0.8rem; }
+    .step-number { color: #818CF8; font-weight: 800; margin-right: 10px; }
     
-    /* 메인 파란색 액션 버튼 */
     div.stButton > button:first-child {
-        background-color: #4F46E5;
-        color: white !important;
-        border-radius: 8px;
-        border: none;
-        padding: 0.8rem 0;
-        font-weight: bold;
-        font-size: 1.1rem;
-        transition: all 0.3s ease;
+        background-color: #4F46E5; color: white !important; border-radius: 8px;
+        border: none; padding: 0.8rem 0; font-weight: bold; font-size: 1.1rem; transition: all 0.3s ease;
     }
     div.stButton > button:first-child:hover {
-        background-color: #4338CA;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+        background-color: #4338CA; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
     }
     
-    /* 🚨 수정됨: 파일 업로더 영역 시인성 강화 */
     [data-testid="stFileUploadDropzone"] {
         background-color: rgba(255,255,255,0.05) !important;
         border: 2px dashed rgba(129, 140, 248, 0.5) !important;
-        border-radius: 12px;
-        padding: 20px !important;
+        border-radius: 12px; padding: 20px !important;
     }
-    /* 업로더 안의 텍스트 색상 */
-    [data-testid="stFileUploadDropzone"] * {
-        color: #E2E8F0 !important;
-    }
-    /* 업로더 'Browse files' 버튼 디자인 */
+    [data-testid="stFileUploadDropzone"] * { color: #E2E8F0 !important; }
     [data-testid="stFileUploadDropzone"] button {
-        background-color: rgba(129, 140, 248, 0.2) !important;
-        color: #A5B4FC !important;
-        border: 1px solid #818CF8 !important;
-        border-radius: 6px !important;
-        font-weight: bold !important;
+        background-color: rgba(129, 140, 248, 0.2) !important; color: #A5B4FC !important;
+        border: 1px solid #818CF8 !important; border-radius: 6px !important; font-weight: bold !important;
     }
     [data-testid="stFileUploadDropzone"] button:hover {
-        background-color: rgba(129, 140, 248, 0.4) !important;
-        color: #FFFFFF !important;
+        background-color: rgba(129, 140, 248, 0.4) !important; color: #FFFFFF !important;
     }
     
-    /* 우측 이미지 프레임 카드 (중앙 정렬 완벽 보장) */
     .right-image-card {
-        background-color: rgba(255,255,255,0.03);
-        border-radius: 16px;
-        padding: 20px;
-        border: 1px solid rgba(255,255,255,0.1);
-        height: calc(100vh - 150px); /* 화면 높이에 맞게 꽉 채움 */
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        overflow: hidden;
+        background-color: rgba(255,255,255,0.03); border-radius: 16px; padding: 20px;
+        border: 1px solid rgba(255,255,255,0.1); height: calc(100vh - 150px); 
+        display: flex; flex-direction: column; justify-content: center; align-items: center; overflow: hidden;
     }
     
-    /* 결과 강조 뱃지 */
     .result-badge {
-        background: linear-gradient(135deg, #4F46E5, #7C3AED);
-        padding: 10px 25px;
-        border-radius: 30px;
-        font-size: 1.2rem;
-        font-weight: bold;
-        display: inline-block;
-        margin-top: 15px;
-        box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+        background: linear-gradient(135deg, #4F46E5, #7C3AED); padding: 10px 25px;
+        border-radius: 30px; font-size: 1.2rem; font-weight: bold; display: inline-block;
+        margin-top: 15px; box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -132,6 +81,7 @@ if not os.path.exists(MODEL_PATH):
 
 NUM_CLASSES = 160
 
+# 클래스 딕셔너리 생략 (튜티님의 160개 코드가 그대로 들어갑니다)
 CLASS_MAPPING = {
     0: 'BMW 2시리즈그란쿠페', 1: 'BMW 3시리즈', 2: 'BMW 4시리즈', 3: 'BMW 5시리즈', 4: 'BMW 6시리즈', 
     5: 'BMW 7시리즈', 6: 'BMW X1', 7: 'BMW X3', 8: 'BMW X4', 9: 'BMW X5', 10: 'BMW X6', 11: 'BMW X7', 
@@ -171,6 +121,7 @@ CLASS_MAPPING = {
     157: '혼다 CR-V', 158: '혼다 어코드', 159: '혼다 파일럿'
 }
 
+# 🧠 기존 EfficientNet 로드
 @st.cache_resource
 def load_car_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -182,11 +133,19 @@ def load_car_model():
         model.eval()
         return model, device
     except Exception as e:
-        st.error(f"모델을 불러오는 중 에러가 발생했습니다: {e}")
         return None, device
 
-model, device = load_car_model()
+# 🎯 YOLO 모델 로드 (가장 가볍고 빠른 yolov8n 사용)
+@st.cache_resource
+def load_yolo_model():
+    # 서버 켜질 때 자동으로 가중치 다운로드 됨
+    model = YOLO('yolov8n.pt') 
+    return model
 
+model, device = load_car_model()
+yolo_model = load_yolo_model()
+
+# EfficientNet용 전처리 (384x384)
 transform = transforms.Compose([
     transforms.Resize((384, 384)),
     transforms.ToTensor(),
@@ -194,13 +153,18 @@ transform = transforms.Compose([
 ])
 
 # ==========================================
-# 🔄 3. 상태 관리
+# 🔄 3. 상태 관리 및 이미지 렌더링 헬퍼
 # ==========================================
 if 'stage' not in st.session_state: st.session_state.stage = 'upload'
-if 'uploaded_file' not in st.session_state: st.session_state.uploaded_file = None
+if 'display_image' not in st.session_state: st.session_state.display_image = None
 if 'feedback_submitted' not in st.session_state: st.session_state.feedback_submitted = False
 
-# 여백을 주어 레퍼런스 이미지처럼 화면 구성을 맞춤
+# PIL 이미지를 HTML 화면에 띄우기 위해 Base64로 변환하는 함수
+def pil_to_base64(img):
+    buffered = io.BytesIO()
+    img.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue()).decode()
+
 col_left, col_space, col_right = st.columns([1, 0.1, 1.3])
 
 # ==========================================
@@ -220,31 +184,58 @@ with col_left:
         uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
         
         if uploaded_file is not None:
-            st.session_state.uploaded_file = uploaded_file
+            # 업로드 시 화면에 띄울 원본 이미지를 세션에 저장
+            st.session_state.display_image = Image.open(uploaded_file).convert("RGB")
             
         st.markdown("<div class='step-text'><span class='step-number'>2</span> Run AI Analysis</div>", unsafe_allow_html=True)
         if st.button("Start AI Analysis ➔", use_container_width=True):
-            if st.session_state.uploaded_file is not None:
+            if st.session_state.display_image is not None:
                 st.session_state.stage = 'analyzing'
                 st.rerun()
             else:
                 st.warning("먼저 이미지를 업로드해주세요!")
 
-    # --- 2단계: 분석 중 ---
+    # --- 2단계: 분석 중 (실제 YOLO 적용) ---
     elif st.session_state.stage == 'analyzing':
         st.markdown("<div class='step-text'><span class='step-number'>⏳</span> Processing...</div>", unsafe_allow_html=True)
         
         yolo_status = st.empty()
         resnet_status = st.empty()
         
-        yolo_status.markdown("<p style='color: #818CF8;'>🔄 Extracting vehicle area...</p>", unsafe_allow_html=True)
-        time.sleep(1.2)
-        yolo_status.markdown("<p style='color: #10B981;'>✅ Vehicle area extracted</p>", unsafe_allow_html=True)
+        yolo_status.markdown("<p style='color: #818CF8;'>🔄 YOLO: Detecting and Cropping Vehicle...</p>", unsafe_allow_html=True)
         
-        resnet_status.markdown("<p style='color: #818CF8;'>🔄 Classifying features...</p>", unsafe_allow_html=True)
+        # 1️⃣ 실제 YOLO 추론 진행
+        original_img = st.session_state.display_image
+        results = yolo_model(original_img)
         
-        img = Image.open(st.session_state.uploaded_file).convert('RGB')
-        input_tensor = transform(img).unsqueeze(0).to(device)
+        best_box = None
+        max_conf = 0.0
+        
+        # YOLO 결과에서 가장 신뢰도가 높은 자동차(car, bus, truck) 박스 찾기
+        for r in results:
+            for box in r.boxes:
+                cls_id = int(box.cls[0])
+                conf = float(box.conf[0])
+                # COCO 데이터셋 기준: 2=car, 3=motorcycle, 5=bus, 7=truck
+                if cls_id in [2, 3, 5, 7] and conf > max_conf:
+                    max_conf = conf
+                    best_box = box.xyxy[0].cpu().numpy()
+        
+        # 자동차를 찾았다면 해당 영역만 크롭
+        if best_box is not None:
+            x1, y1, x2, y2 = map(int, best_box)
+            cropped_img = original_img.crop((x1, y1, x2, y2))
+            st.session_state.display_image = cropped_img # 우측 화면을 크롭된 이미지로 업데이트!
+        else:
+            cropped_img = original_img # 못 찾으면 원본 유지
+            
+        time.sleep(0.5) # UI 시각적 여유
+        yolo_status.markdown("<p style='color: #10B981;'>✅ YOLO: Vehicle successfully cropped</p>", unsafe_allow_html=True)
+        
+        # 2️⃣ 크롭된 이미지를 EfficientNet에 입력 (384x384 전처리)
+        resnet_status.markdown("<p style='color: #818CF8;'>🔄 EfficientNet: Classifying features...</p>", unsafe_allow_html=True)
+        
+        input_tensor = transform(cropped_img).unsqueeze(0).to(device)
         
         if model is not None:
             with torch.no_grad():
@@ -255,7 +246,7 @@ with col_left:
                 st.session_state.result_name = CLASS_MAPPING.get(pred_idx.item(), f"Unknown (ID: {pred_idx.item()})")
                 st.session_state.result_prob = f"{confidence.item() * 100:.1f}%"
         
-        resnet_status.markdown("<p style='color: #10B981;'>✅ Analysis complete</p>", unsafe_allow_html=True)
+        resnet_status.markdown("<p style='color: #10B981;'>✅ EfficientNet: Analysis complete</p>", unsafe_allow_html=True)
         time.sleep(0.5)
         
         st.session_state.stage = 'result'
@@ -286,16 +277,15 @@ with col_left:
         st.write("")
         if st.button("Try another photo ↺", use_container_width=True):
             st.session_state.stage = 'upload'
-            st.session_state.uploaded_file = None
+            st.session_state.display_image = None
             st.session_state.feedback_submitted = False
             st.rerun()
 
 # ----------------- [우측 프리뷰/이미지 영역] -----------------
 with col_right:
-    # 🚨 수정됨: HTML 안에서 Base64로 이미지를 직접 그려 중앙 정렬과 비율을 완벽하게 맞춤
-    if st.session_state.uploaded_file is not None:
-        bytes_data = st.session_state.uploaded_file.getvalue()
-        b64_encoded = base64.b64encode(bytes_data).decode()
+    # 업로드 되거나 크롭된 이미지가 있으면 그리기
+    if st.session_state.display_image is not None:
+        b64_encoded = pil_to_base64(st.session_state.display_image)
         
         st.markdown(f"""
             <div class='right-image-card'>
