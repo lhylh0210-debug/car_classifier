@@ -72,7 +72,7 @@ st.markdown("""
         margin-top: 15px;
     }
     </style>
-""", unsafe_html=True)
+""", unsafe_allow_html=True)
 
 # ==========================================
 # 🧠 3. AI 모델 로드 함수 및 설정
